@@ -4,6 +4,7 @@ import 'package:terramatch/features/soil_analysis/presentation/widgets/custom_in
 import 'package:terramatch/features/soil_analysis/presentation/widgets/section_title.dart';
 import 'package:terramatch/features/soil_analysis/providers/npk_provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'crop_result_screen.dart';
 
 class NpkInputScreen extends ConsumerWidget {
   const NpkInputScreen({super.key});
@@ -137,21 +138,21 @@ class NpkInputScreen extends ConsumerWidget {
 
                           try {
                             final result = await notifier.submitAnalysis();
-                            
+
                             if (context.mounted) {
                               Navigator.pop(context);
-                              
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: AppColors.primary,
-                                  content: Text('Recommended Crop: $result'),
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CropResultScreen(cropName: result),
                                 ),
                               );
                             }
                           } catch (e) {
                             if (context.mounted) {
-                              Navigator.pop(context);
-                              
+                              Navigator.pop(context); 
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   backgroundColor: Colors.red,
@@ -170,7 +171,7 @@ class NpkInputScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                )
+                ),
               ),
             ],
           ),
@@ -179,4 +180,3 @@ class NpkInputScreen extends ConsumerWidget {
     );
   }
 }
-

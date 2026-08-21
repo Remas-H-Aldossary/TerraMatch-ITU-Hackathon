@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to capture soil images for analysis.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need photo library access to pick soil images for analysis.</string>
 </dict>
 </plist>
