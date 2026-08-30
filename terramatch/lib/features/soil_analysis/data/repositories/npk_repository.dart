@@ -13,17 +13,20 @@ class NpkRepository {
   Future<String> predictCrop(SoilInputModel input) async {
     try {
       final response = await _dio.post(
-        'predict', 
+        '/predict-model2', 
         data: input.toJson(),
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        return response.data['recommended_crop'] ?? 'Unknown Crop';
+        // الـ API يرجع نص مباشر مباشرة (String) وليس Map
+        return response.data.toString().replaceAll('"', '');
       } else {
         throw Exception('Failed to get crop recommendation');
       }
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['detail'] ?? e.message ?? 'Network error occurred';
+      final errorMessage = e.response?.data is Map && e.response?.data['detail'] != null
+          ? e.response?.data['detail'].toString()
+          : e.message ?? 'Network error occurred';
       throw Exception(errorMessage);
     }
   }

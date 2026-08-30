@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:terramatch/features/splash/presentation/screens/splash_screen.dart';
 import 'core/constants/app_colors.dart';
-import 'features/soil_analysis/presentation/screens/onboarding_screen.dart'; 
 
 void main() {
   runApp(
@@ -28,7 +28,7 @@ class TerraMatchApp extends StatelessWidget {
         ),
         fontFamily: 'Roboto',
       ),
-      home: const OnboardingScreen(),
+      home: const SplashScreen(),
     );
   }
 }

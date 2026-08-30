@@ -13,9 +13,6 @@ class NpkFormNotifier extends _$NpkFormNotifier {
   void updateP(String v) => state = state.copyWith(p: double.tryParse(v));
   void updateK(String v) => state = state.copyWith(k: double.tryParse(v));
   void updatePh(String v) => state = state.copyWith(ph: double.tryParse(v));
-  void updateTemp(String v) => state = state.copyWith(temperature: double.tryParse(v));
-  void updateHumidity(String v) => state = state.copyWith(humidity: double.tryParse(v));
-  void updateRainfall(String v) => state = state.copyWith(rainfall: double.tryParse(v));
 
   Future<String> submitAnalysis() async {
     final repository = ref.read(npkRepositoryProvider);

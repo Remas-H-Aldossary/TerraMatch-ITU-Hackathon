@@ -39,7 +39,7 @@ dependencies:
   flutter_riverpod: ^2.5.1
   riverpod_annotation: ^2.3.5
   dio: ^5.11.0
-
+  flutter_native_splash: ^2.4.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -94,3 +94,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_native_splash:
+  color: "#F6F8F6" 
+  image: assets/images/logo.png 
+  
+  android_12:
+    image: assets/images/logo.png
+    icon_background_color: "#F6F8F6"
