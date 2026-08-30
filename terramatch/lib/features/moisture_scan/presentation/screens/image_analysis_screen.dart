@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 import '../../../../core/constants/app_colors.dart';
 
 class ImageAnalysisScreen extends StatefulWidget {
@@ -14,6 +15,31 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
   File? _selectedImage;
   bool _isAnalyzing = false;
   final ImagePicker _picker = ImagePicker();
+
+  late final Dio _dio;
+
+  // الرابط الأساسي والـ Endpoint الصحيح الخاص بتحليل التربة
+  static const String _baseUrl = 'https://trails-rover-commission-find.trycloudflare.com';
+  static const String _predictEndpoint = '/predict-soil';
+
+  @override
+  void initState() {
+    super.initState();
+    _initDio();
+  }
+
+  void _initDio() {
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        connectTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(seconds: 60),
+        headers: {
+          'accept': 'application/json',
+        },
+      ),
+    );
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -33,7 +59,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error picking image: $e'),
+            content: Text('حدث خطأ أثناء اختيار الصورة: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -41,47 +67,183 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
     }
   }
 
-  void _analyzeImage() async {
+  Future<void> _analyzeImage() async {
     if (_selectedImage == null) return;
 
     setState(() {
       _isAnalyzing = true;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      String fileName = _selectedImage!.path.split('/').last;
 
-    if (mounted) {
-      setState(() {
-        _isAnalyzing = false;
+      FormData formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          _selectedImage!.path,
+          filename: fileName,
+        ),
       });
 
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text('Analysis Result'),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Soil Moisture: Optimal (68%)',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              Text('Soil Status: Healthy & Well Hydrated'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK',
-                  style: TextStyle(color: AppColors.primary)),
+      // إرسال الطلب إلى /predict-soil
+      final response = await _dio.post(_predictEndpoint, data: formData);
+
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+
+        if (response.statusCode == 200 && response.data != null) {
+          final responseData = response.data;
+          
+          if (responseData['status'] == 'success' && responseData['result'] != null) {
+            _showResultDialog(responseData['result']);
+          } else {
+            _showErrorSnackBar('تعذر تحليل نتائج الصورة.');
+          }
+        } else {
+          _showErrorSnackBar('حدث خطأ أثناء الاتصال بالسيرفر (${response.statusCode})');
+        }
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+
+        String message = 'تعذر الاتصال بخدمة التحليل.';
+        if (e.response != null) {
+          message = 'خطأ من السيرفر: ${e.response?.statusCode}';
+        } else if (e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout) {
+          message = 'انتهت مهلة الاتصال بالخادم، يرجى المحاولة لاحقاً.';
+        }
+        
+        _showErrorSnackBar(message);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+        _showErrorSnackBar('حدث خطأ غير متوقع: $e');
+      }
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _showResultDialog(Map<String, dynamic> result) {
+    final String soilType = result['soil_type'] ?? 'غير معروف';
+    final String statusAr = result['status_ar'] ?? '';
+    final List<dynamic> recommendedCrops = result['recommended_crops'] ?? [];
+    final List<dynamic> unsuitableCrops = result['unsuitable_crops'] ?? [];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.analytics_outlined, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text(
+              'نتيجة تحليل التربة',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ],
         ),
-      );
-    }
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
+                  children: [
+                    const TextSpan(
+                      text: 'نوع التربة: ',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    TextSpan(text: soilType),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (statusAr.isNotEmpty) ...[
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                    children: [
+                      const TextSpan(
+                        text: 'الحالة: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(text: statusAr),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              const Divider(),
+              if (recommendedCrops.isNotEmpty) ...[
+                const Text(
+                  '🌱 المحاصيل المناسبة:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ...recommendedCrops.map(
+                  (crop) => Padding(
+                    padding: const EdgeInsets.only(right: 8.0, top: 2.0),
+                    child: Text('• $crop', style: const TextStyle(fontSize: 13)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (unsuitableCrops.isNotEmpty) ...[
+                const Text(
+                  '⚠️ المحاصيل غير المناسبة:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ...unsuitableCrops.map(
+                  (crop) => Padding(
+                    padding: const EdgeInsets.only(right: 8.0, top: 2.0),
+                    child: Text('• $crop', style: const TextStyle(fontSize: 13)),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'حسناً',
+              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -131,7 +293,6 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
               ),
               const SizedBox(height: 24),
 
-              // --- Image Preview Area ---
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -173,7 +334,6 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
               ),
               const SizedBox(height: 24),
 
-              // --- Image Picker Buttons ---
               Row(
                 children: [
                   Expanded(
@@ -213,7 +373,6 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
               ),
               const SizedBox(height: 16),
 
-              // --- Analyze Button ---
               SizedBox(
                 height: 54,
                 child: ElevatedButton(

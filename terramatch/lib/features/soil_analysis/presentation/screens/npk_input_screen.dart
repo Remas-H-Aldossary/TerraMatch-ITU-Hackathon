@@ -50,7 +50,7 @@ class NpkInputScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Provide the soil chemistry and climate measurements to generate AI recommendations.',
+                'Provide the soil chemistry measurements (NPK & pH) to generate AI recommendations.',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppColors.textMuted,
@@ -85,30 +85,6 @@ class NpkInputScreen extends ConsumerWidget {
                 hint: 'e.g. 6.5',
                 icon: Icons.speed_rounded,
                 onChanged: notifier.updatePh,
-              ),
-
-              const SizedBox(height: 16),
-
-              // --- Climate Data Section ---
-              const SectionTitle(title: 'Climate Measurements'),
-              const SizedBox(height: 12),
-              CustomInputField(
-                label: 'Temperature (°C)',
-                hint: 'e.g. 25.5',
-                icon: Icons.thermostat_rounded,
-                onChanged: notifier.updateTemp,
-              ),
-              CustomInputField(
-                label: 'Humidity (%)',
-                hint: 'e.g. 80.0',
-                icon: Icons.water_drop_outlined,
-                onChanged: notifier.updateHumidity,
-              ),
-              CustomInputField(
-                label: 'Rainfall (mm)',
-                hint: 'e.g. 200.0',
-                icon: Icons.cloudy_snowing,
-                onChanged: notifier.updateRainfall,
               ),
 
               const SizedBox(height: 28),
@@ -151,7 +127,7 @@ class NpkInputScreen extends ConsumerWidget {
                             }
                           } catch (e) {
                             if (context.mounted) {
-                              Navigator.pop(context); 
+                              Navigator.pop(context);
 
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(

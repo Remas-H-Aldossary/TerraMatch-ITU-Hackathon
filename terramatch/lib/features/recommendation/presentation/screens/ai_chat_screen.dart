@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../../../../core/constants/app_colors.dart';
 
 class ChatMessage {
@@ -26,23 +27,82 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final List<ChatMessage> _messages = [];
   bool _isTyping = false;
 
+  late final Dio _dio;
+  
+  // فصل الـ Base URL عن الـ Endpoint ليعمل Dio بشكل صحيح
+  static const String _baseUrl = 'https://terramatch-knowledge-base.onrender.com';
+  static const String _askEndpoint = '/ask';
+
   final List<String> _quickSuggestions = [
+    'هل يمكن نقل بيانات المزارعين خارج المملكة؟',
     'How to improve soil NPK levels?',
-    'Best crop for high humidity?',
     'Signs of nitrogen deficiency',
   ];
 
   @override
   void initState() {
     super.initState();
-    // رسالة ترحيبية أولية من المستشار
+    _initDio();
     _messages.add(
       ChatMessage(
-        text: 'Hello! I am your AI Agronomist. How can I help with your farm or soil today?',
+        text: 'مرحباً بك! أنا مستشارك الزراعي الذكي. كيف يمكنني مساعدتك اليوم؟',
         isUser: false,
         timestamp: DateTime.now(),
       ),
     );
+  }
+
+  void _initDio() {
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        connectTimeout: const Duration(seconds: 65),
+        receiveTimeout: const Duration(seconds: 65),
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+        },
+      ),
+    );
+  }
+
+  /// الدالة المسؤولة عن إرسال السؤال عبر Dio
+  Future<String> _fetchAiResponse(String question) async {
+    try {
+      final response = await _dio.post(
+        _askEndpoint,
+        data: {
+          'question': question,
+          'top_k': 3,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        // معالجة استجابة الـ API واستخراج النتيجة بناءً على المفاتيح الشائعة
+        if (data is Map<String, dynamic>) {
+          if (data.containsKey('answer')) {
+            return data['answer'].toString();
+          } else if (data.containsKey('response')) {
+            return data['response'].toString();
+          } else if (data.containsKey('result')) {
+            return data['result'].toString();
+          }
+        }
+        return data.toString();
+      } else {
+        return 'حدث خطأ في الاتصال بالسيرفر (${response.statusCode}). يرجى المحاولة لاحقاً.';
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return 'تأخرت الاستجابة بسبب إعادة تشغيل الخدمة، يرجى إعادة إرسال السؤال مرة أخرى.';
+      }
+      return 'تعذر الاتصال بالخادم، يرجى التأكد من اتصال الإنترنت.';
+    } catch (e) {
+      return 'حدث خطأ غير متوقع: $e';
+    }
   }
 
   void _sendMessage(String text) async {
@@ -62,12 +122,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _controller.clear();
     _scrollToBottom();
 
-    // محاكاة استجابة الـ AI
-    await Future.delayed(const Duration(seconds: 2));
+    // إرسال السؤال والحصول على الإجابة
+    String aiResponse = await _fetchAiResponse(text);
 
     if (mounted) {
-      String aiResponse = _generateMockAiResponse(text);
-
       setState(() {
         _isTyping = false;
         _messages.add(
@@ -79,17 +137,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
         );
       });
       _scrollToBottom();
-    }
-  }
-
-  String _generateMockAiResponse(String input) {
-    final query = input.toLowerCase();
-    if (query.contains('npk') || query.contains('nitrogen')) {
-      return 'To balance NPK levels, consider adding organic compost or tailored fertilizers based on your specific crop target.';
-    } else if (query.contains('humidity') || query.contains('water')) {
-      return 'High humidity typically benefits crops like rice and sugarcane, provided the soil drainage is well maintained.';
-    } else {
-      return 'That is a great question. Maintaining healthy soil structure, optimal pH, and balanced irrigation is key to high yields.';
     }
   }
 
@@ -157,8 +204,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                 child: Row(
                   children: [
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    SizedBox(width: 8),
                     Text(
-                      'AI Agronomist is thinking...',
+                      'جاري البحث في قاعدة المعرفة والاستجابة...',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textMuted,
@@ -216,7 +272,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     child: TextField(
                       controller: _controller,
                       decoration: InputDecoration(
-                        hintText: 'Ask anything about your crops...',
+                        hintText: 'اسأل عن التربة أو المحاصيل أو الأنظمة...',
                         hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
@@ -276,4 +332,4 @@ class _AiChatScreenState extends State<AiChatScreen> {
       ),
     );
   }
-}
+} 

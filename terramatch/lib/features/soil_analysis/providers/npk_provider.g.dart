@@ -6,7 +6,7 @@ part of 'npk_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$npkFormNotifierHash() => r'5dcc56ce99910e8ea696ee7b4a7761dbf4c7d167';
+String _$npkFormNotifierHash() => r'666a0cc7a9431032565d46a2438aa8420784c91d';
 
 /// See also [NpkFormNotifier].
 @ProviderFor(NpkFormNotifier)
