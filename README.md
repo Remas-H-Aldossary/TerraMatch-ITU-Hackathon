@@ -13,3 +13,12 @@
 - **Suad Alarabi:** RAG System & ITU-T Y.3172 Architecture Designer
 - **Shumukh Alotaibi:** Machine Learning Specialist (ResNet50 & Random Forest Models)
 - **Sheikha Almasjedi:** Mobile App & Backend UI/UX Developer
+
+## Copyright & Authors
+Developed for ITU AI Readiness Hackathon 2026.
+All rights reserved © 2026 **TerraMatch Team**.
+
+- **Remas Hamad Aldossary** — Team Leader, Concept Creator & Original Idea Owner
+- **Suad Alarabi** — RAG System & Architecture Designer
+- **Shumukh Alotaibi** — Machine Learning Specialist
+- **Sheikha Almasjedi** — UI/UX & Mobile Application Developer
