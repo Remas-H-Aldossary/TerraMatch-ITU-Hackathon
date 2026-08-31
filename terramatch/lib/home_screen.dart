@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:terramatch/features/soil_analysis/presentation/screens/npk_input_screen.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'package:terramatch/features/moisture_scan/presentation/screens/image_analysis_screen.dart';
 import 'package:terramatch/features/recommendation/presentation/screens/ai_chat_screen.dart';
 import 'package:terramatch/features/soil_analysis/presentation/widgets/service_card.dart';
-import 'npk_input_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

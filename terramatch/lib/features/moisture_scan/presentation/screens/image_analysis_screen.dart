@@ -18,8 +18,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
 
   late final Dio _dio;
 
-  // الرابط الأساسي والـ Endpoint الصحيح الخاص بتحليل التربة
-  static const String _baseUrl = 'https://trails-rover-commission-find.trycloudflare.com';
+  static const String _baseUrl = 'https://fall-scribing-puppy.ngrok-free.dev';
   static const String _predictEndpoint = '/predict-soil';
 
   @override
@@ -36,6 +35,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
         receiveTimeout: const Duration(seconds: 60),
         headers: {
           'accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       ),
     );
@@ -59,7 +59,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('حدث خطأ أثناء اختيار الصورة: $e'),
+            content: Text('Error selecting image: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -84,7 +84,6 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
         ),
       });
 
-      // إرسال الطلب إلى /predict-soil
       final response = await _dio.post(_predictEndpoint, data: formData);
 
       if (mounted) {
@@ -94,14 +93,18 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
 
         if (response.statusCode == 200 && response.data != null) {
           final responseData = response.data;
-          
-          if (responseData['status'] == 'success' && responseData['result'] != null) {
-            _showResultDialog(responseData['result']);
+
+          if (responseData is Map<String, dynamic>) {
+            if (responseData['status'] == 'success' && responseData['result'] != null) {
+              _showResultDialog(responseData['result']);
+            } else {
+              _showResultDialog(responseData);
+            }
           } else {
-            _showErrorSnackBar('تعذر تحليل نتائج الصورة.');
+            _showErrorSnackBar('Failed to parse analysis results.');
           }
         } else {
-          _showErrorSnackBar('حدث خطأ أثناء الاتصال بالسيرفر (${response.statusCode})');
+          _showErrorSnackBar('Server error occurred (${response.statusCode})');
         }
       }
     } on DioException catch (e) {
@@ -110,14 +113,14 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
           _isAnalyzing = false;
         });
 
-        String message = 'تعذر الاتصال بخدمة التحليل.';
+        String message = 'Unable to connect to the analysis service.';
         if (e.response != null) {
-          message = 'خطأ من السيرفر: ${e.response?.statusCode}';
+          message = 'Server Error: ${e.response?.statusCode}';
         } else if (e.type == DioExceptionType.connectionTimeout ||
             e.type == DioExceptionType.receiveTimeout) {
-          message = 'انتهت مهلة الاتصال بالخادم، يرجى المحاولة لاحقاً.';
+          message = 'Connection timeout. Please try again later.';
         }
-        
+
         _showErrorSnackBar(message);
       }
     } catch (e) {
@@ -125,7 +128,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
         setState(() {
           _isAnalyzing = false;
         });
-        _showErrorSnackBar('حدث خطأ غير متوقع: $e');
+        _showErrorSnackBar('An unexpected error occurred: $e');
       }
     }
   }
@@ -140,8 +143,8 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
   }
 
   void _showResultDialog(Map<String, dynamic> result) {
-    final String soilType = result['soil_type'] ?? 'غير معروف';
-    final String statusAr = result['status_ar'] ?? '';
+    final String soilType = result['soil_type'] ?? result['predicted_class'] ?? 'Unknown';
+    final String status = result['status_en'] ?? result['status'] ?? result['description'] ?? '';
     final List<dynamic> recommendedCrops = result['recommended_crops'] ?? [];
     final List<dynamic> unsuitableCrops = result['unsuitable_crops'] ?? [];
 
@@ -156,7 +159,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
             Icon(Icons.analytics_outlined, color: AppColors.primary),
             SizedBox(width: 8),
             Text(
-              'نتيجة تحليل التربة',
+              'Soil Analysis Result',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ],
@@ -171,7 +174,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
                   style: const TextStyle(color: Colors.black87, fontSize: 14),
                   children: [
                     const TextSpan(
-                      text: 'نوع التربة: ',
+                      text: 'Soil Type: ',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     TextSpan(text: soilType),
@@ -179,25 +182,25 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              if (statusAr.isNotEmpty) ...[
+              if (status.isNotEmpty) ...[
                 RichText(
                   text: TextSpan(
                     style: const TextStyle(color: Colors.black87, fontSize: 14),
                     children: [
                       const TextSpan(
-                        text: 'الحالة: ',
+                        text: 'Status: ',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      TextSpan(text: statusAr),
+                      TextSpan(text: status),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
               ],
-              const Divider(),
               if (recommendedCrops.isNotEmpty) ...[
+                const Divider(),
                 const Text(
-                  '🌱 المحاصيل المناسبة:',
+                  '🌱 Suitable Crops:',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.green,
@@ -207,7 +210,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
                 const SizedBox(height: 4),
                 ...recommendedCrops.map(
                   (crop) => Padding(
-                    padding: const EdgeInsets.only(right: 8.0, top: 2.0),
+                    padding: const EdgeInsets.only(left: 8.0, top: 2.0),
                     child: Text('• $crop', style: const TextStyle(fontSize: 13)),
                   ),
                 ),
@@ -215,7 +218,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
               ],
               if (unsuitableCrops.isNotEmpty) ...[
                 const Text(
-                  '⚠️ المحاصيل غير المناسبة:',
+                  '⚠️ Unsuitable Crops:',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.orange,
@@ -225,7 +228,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
                 const SizedBox(height: 4),
                 ...unsuitableCrops.map(
                   (crop) => Padding(
-                    padding: const EdgeInsets.only(right: 8.0, top: 2.0),
+                    padding: const EdgeInsets.only(left: 8.0, top: 2.0),
                     child: Text('• $crop', style: const TextStyle(fontSize: 13)),
                   ),
                 ),
@@ -237,7 +240,7 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text(
-              'حسناً',
+              'OK',
               style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
             ),
           ),
@@ -292,7 +295,6 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -333,7 +335,6 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
               Row(
                 children: [
                   Expanded(
@@ -372,7 +373,6 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-
               SizedBox(
                 height: 54,
                 child: ElevatedButton(
