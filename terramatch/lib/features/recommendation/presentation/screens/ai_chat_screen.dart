@@ -28,16 +28,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
   bool _isTyping = false;
 
   late final Dio _dio;
-  
-  // فصل الـ Base URL عن الـ Endpoint ليعمل Dio بشكل صحيح
+
   static const String _baseUrl = 'https://terramatch-knowledge-base.onrender.com';
   static const String _askEndpoint = '/ask';
-
-  final List<String> _quickSuggestions = [
-    'هل يمكن نقل بيانات المزارعين خارج المملكة؟',
-    'How to improve soil NPK levels?',
-    'Signs of nitrogen deficiency',
-  ];
 
   @override
   void initState() {
@@ -45,7 +38,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _initDio();
     _messages.add(
       ChatMessage(
-        text: 'مرحباً بك! أنا مستشارك الزراعي الذكي. كيف يمكنني مساعدتك اليوم؟',
+        text: 'Hello! I am your AI Agronomist. How can I help you with your crop and soil management today?',
         isUser: false,
         timestamp: DateTime.now(),
       ),
@@ -66,7 +59,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  /// الدالة المسؤولة عن إرسال السؤال عبر Dio
   Future<String> _fetchAiResponse(String question) async {
     try {
       final response = await _dio.post(
@@ -80,7 +72,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
       if (response.statusCode == 200) {
         final data = response.data;
 
-        // معالجة استجابة الـ API واستخراج النتيجة بناءً على المفاتيح الشائعة
         if (data is Map<String, dynamic>) {
           if (data.containsKey('answer')) {
             return data['answer'].toString();
@@ -92,24 +83,25 @@ class _AiChatScreenState extends State<AiChatScreen> {
         }
         return data.toString();
       } else {
-        return 'حدث خطأ في الاتصال بالسيرفر (${response.statusCode}). يرجى المحاولة لاحقاً.';
+        return 'Server error (${response.statusCode}). Please try again later.';
       }
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
-        return 'تأخرت الاستجابة بسبب إعادة تشغيل الخدمة، يرجى إعادة إرسال السؤال مرة أخرى.';
+        return 'Response timed out due to cold start. Please resend your question.';
       }
-      return 'تعذر الاتصال بالخادم، يرجى التأكد من اتصال الإنترنت.';
+      return 'Could not connect to the server. Please check your internet connection.';
     } catch (e) {
-      return 'حدث خطأ غير متوقع: $e';
+      return 'An unexpected error occurred: $e';
     }
   }
 
   void _sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    final query = text.trim();
+    if (query.isEmpty) return;
 
     final userMessage = ChatMessage(
-      text: text,
+      text: query,
       isUser: true,
       timestamp: DateTime.now(),
     );
@@ -122,8 +114,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _controller.clear();
     _scrollToBottom();
 
-    // إرسال السؤال والحصول على الإجابة
-    String aiResponse = await _fetchAiResponse(text);
+    String aiResponse = await _fetchAiResponse(query);
 
     if (mounted) {
       setState(() {
@@ -146,7 +137,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
+          curve: Curves.easeOutCubic,
         );
       }
     });
@@ -155,29 +146,74 @@ class _AiChatScreenState extends State<AiChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAF7),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textDark, size: 20),
-          onPressed: () => Navigator.pop(context),
+        scrolledUnderElevation: 1,
+        leading: Container(
+          margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F4F1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textDark, size: 18),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.primary,
-              child: Icon(Icons.smart_toy_outlined, color: Colors.white, size: 18),
+            Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: 10),
-            Text(
-              'AI Agronomist',
-              style: TextStyle(
-                color: AppColors.textDark,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AI Agronomist',
+                  style: TextStyle(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  'Knowledge Assistant',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -189,7 +225,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
                   final msg = _messages[index];
@@ -200,98 +237,101 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
             // --- Typing Indicator ---
             if (_isTyping)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
                 child: Row(
                   children: [
-                    SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.primary,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 6,
+                          ),
+                        ],
                       ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'جاري البحث في قاعدة المعرفة والاستجابة...',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textMuted,
-                        fontStyle: FontStyle.italic,
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Thinking...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted.withOpacity(0.9),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
 
-            // --- Quick Suggestions ---
-            if (_messages.length <= 2)
-              SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _quickSuggestions.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    return ActionChip(
-                      backgroundColor: Colors.white,
-                      side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                      label: Text(
-                        _quickSuggestions[index],
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 12,
-                        ),
-                      ),
-                      onPressed: () => _sendMessage(_quickSuggestions[index]),
-                    );
-                  },
-                ),
-              ),
-
-            const SizedBox(height: 8),
-
-            // --- Input Field ---
+            // --- Floating Input Bar ---
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
                 color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, -2),
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
                   ),
                 ],
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      decoration: InputDecoration(
-                        hintText: 'اسأل عن التربة أو المحاصيل أو الأنظمة...',
-                        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        fillColor: AppColors.background,
-                        filled: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F6F4),
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      onSubmitted: _sendMessage,
+                      child: TextField(
+                        controller: _controller,
+                        style: const TextStyle(color: AppColors.textDark, fontSize: 14),
+                        decoration: const InputDecoration(
+                          hintText: 'Ask anything about your crops...',
+                          hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                        ),
+                        onSubmitted: _sendMessage,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  CircleAvatar(
-                    backgroundColor: AppColors.primary,
-                    radius: 22,
-                    child: IconButton(
-                      icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-                      onPressed: () => _sendMessage(_controller.text),
+                  const SizedBox(width: 10),
+                  Material(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(24),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () => _sendMessage(_controller.text),
+                      child: const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Icon(
+                          Icons.arrow_upward_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -310,26 +350,33 @@ class _AiChatScreenState extends State<AiChatScreen> {
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
+          maxWidth: MediaQuery.of(context).size.width * 0.78,
         ),
         decoration: BoxDecoration(
-          color: message.isUser ? AppColors.primary : const Color(0xFFE2F3E5),
+          color: message.isUser ? AppColors.primary : Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(message.isUser ? 16 : 4),
-            bottomRight: Radius.circular(message.isUser ? 4 : 16),
+            topLeft: const Radius.circular(20),
+            topRight: const Radius.circular(20),
+            bottomLeft: Radius.circular(message.isUser ? 20 : 4),
+            bottomRight: Radius.circular(message.isUser ? 4 : 20),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Text(
           message.text,
           style: TextStyle(
             color: message.isUser ? Colors.white : AppColors.textDark,
-            fontSize: 14,
-            height: 1.3,
+            fontSize: 14.5,
+            height: 1.45,
           ),
         ),
       ),
     );
   }
-} 
+}

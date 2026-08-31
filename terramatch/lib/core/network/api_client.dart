@@ -7,21 +7,16 @@ part 'api_client.g.dart';
 
 @riverpod
 Dio dio(DioRef ref) {
-  String baseUrl = 'http://10.0.2.2:8000/api/'; 
-  
-  if (kIsWeb) {
-    baseUrl = 'http://localhost:8000/api/';
-  } else if (Platform.isIOS) {
-    baseUrl = 'http://127.0.0.1:8000/api/';
-  }
+  const String baseUrl = 'https://gondola-movable-refuse.ngrok-free.dev';
 
   final options = BaseOptions(
     baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
+    connectTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true', 
     },
   );
 

@@ -1,34 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:terramatch/features/splash/presentation/screens/splash_screen.dart';
-import 'core/constants/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:terramatch/features/Auth/presentation/screens/auth_screen.dart';
+import 'package:terramatch/home_screen.dart';
+import 'package:terramatch/onboarding_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  final prefs = await SharedPreferences.getInstance();
+  final bool isOnboardingSeen = prefs.getBool('is_onboarding_seen') ?? false;
+  final bool isLoggedInOrGuest = (prefs.getBool('is_logged_in') ?? false) || (prefs.getBool('is_guest') ?? false);
+
+  Widget initialScreen;
+  if (!isOnboardingSeen) {
+    initialScreen = const OnboardingScreen();
+  } else if (!isLoggedInOrGuest) {
+    initialScreen = const AuthScreen();
+  } else {
+    initialScreen = const HomeScreen();
+  }
+
   runApp(
-    const ProviderScope(
-      child: TerraMatchApp(),
+    ProviderScope(
+      child: MyApp(initialScreen: initialScreen),
     ),
   );
 }
 
-class TerraMatchApp extends StatelessWidget {
-  const TerraMatchApp({super.key});
+class MyApp extends StatelessWidget {
+  final Widget initialScreen;
+  const MyApp({super.key, required this.initialScreen});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TerraMatch',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.background, 
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,               
-          primary: AppColors.primary,                 
-        ),
-        fontFamily: 'Roboto',
-      ),
-      home: const SplashScreen(),
+      title: 'TerraMatch',
+      home: initialScreen,
     );
   }
 }

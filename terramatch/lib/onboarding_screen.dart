@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:terramatch/features/Auth/presentation/screens/auth_screen.dart';
 import '../../../../core/constants/app_colors.dart';
-import 'home_screen.dart'; 
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
@@ -82,13 +83,18 @@ class OnboardingScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(18),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const HomeScreen(),
-                      ),
-                    );
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('is_onboarding_seen', true);
+
+                    if (context.mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AuthScreen(),
+                        ),
+                      );
+                    }
                   },
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
