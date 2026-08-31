@@ -9,7 +9,7 @@
 
 
 ## Team Members & Roles
-- **Remas Hamad Aldossary:** Team Leader, Policy Researcher & PDPL Compliance Lead
+- **Remas Hamad Aldossary:** Team Leader, Policy Researcher, PDPL Compliance & Technical Report Lead
 - **Suad Alarabi:** RAG System & ITU-T Y.3172 Architecture Designer
 - **Shumukh Alotaibi:** Machine Learning Specialist (ResNet50 & Random Forest Models)
 - **Sheikha Almasjedi:** Mobile App & Backend UI/UX Developer
